@@ -73,6 +73,7 @@ diamond_texture_backing = 0.12;
 inner_gusset_radius = 4.00;
 inner_gusset_steps = 24;
 rib_tip_radius = left_rear_tab_width / 2;
+left_elbow_outer_radius = inner_gusset_radius + left_rear_tab_width;
 
 function bez3(p0, p1, p2, p3, t) = [
     pow(1 - t, 3) * p0[0]
@@ -238,13 +239,22 @@ module main_front_plate() {
     );
 }
 
-module green_origin_radius_cutter() {
+module left_elbow_outer_radius_cutter() {
     translate([0, 0, -eps])
         linear_extrude(height = overall_height + 2 * eps)
             difference() {
-                square([inner_gusset_radius, inner_gusset_radius]);
-                translate([inner_gusset_radius, inner_gusset_radius])
-                    circle(r = inner_gusset_radius, $fn = inner_gusset_steps);
+                square([
+                    left_rear_tab_width + inner_gusset_radius,
+                    left_rear_tab_y + inner_gusset_radius
+                ]);
+                translate([
+                    left_rear_tab_width + inner_gusset_radius,
+                    left_rear_tab_y + inner_gusset_radius
+                ])
+                    circle(
+                        r = left_elbow_outer_radius,
+                        $fn = inner_gusset_steps
+                    );
             }
 }
 
@@ -253,7 +263,7 @@ module left_body_connector() {
         xz_extrude(0, left_rear_tab_width)
             plate_region_2d(0, green_body_width);
 
-        green_origin_radius_cutter();
+        left_elbow_outer_radius_cutter();
     }
 }
 
@@ -300,12 +310,16 @@ module front_body_parts() {
 }
 
 module left_rear_tab() {
-    translate([0, left_rear_tab_y, 0])
-        cube([
-            left_rear_tab_width,
-            overall_depth - left_rear_tab_y,
-            overall_height
-        ]);
+    difference() {
+        translate([0, left_rear_tab_y, 0])
+            cube([
+                left_rear_tab_width,
+                overall_depth - left_rear_tab_y,
+                overall_height
+            ]);
+
+        left_elbow_outer_radius_cutter();
+    }
 }
 
 module center_rear_rib() {
