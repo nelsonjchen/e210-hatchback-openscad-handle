@@ -70,6 +70,8 @@ diamond_texture = texture("diamonds", n = 2);
 diamond_texture_size = 4.00;
 diamond_texture_depth = 0.45;
 diamond_texture_backing = 0.12;
+inner_gusset_radius = 4.00;
+inner_gusset_steps = 24;
 
 function bez3(p0, p1, p2, p3, t) = [
     pow(1 - t, 3) * p0[0]
@@ -300,12 +302,31 @@ module center_rear_rib() {
         ]);
 }
 
+module rib_inner_radius_gussets() {
+    linear_extrude(height = overall_height)
+        translate([left_rear_tab_width, left_rear_tab_y])
+            difference() {
+                square([inner_gusset_radius, inner_gusset_radius]);
+                translate([inner_gusset_radius, inner_gusset_radius])
+                    circle(r = inner_gusset_radius, $fn = inner_gusset_steps);
+            }
+
+    linear_extrude(height = overall_height)
+        translate([center_rib_x - inner_gusset_radius, center_rib_y])
+            difference() {
+                square([inner_gusset_radius, inner_gusset_radius]);
+                translate([0, inner_gusset_radius])
+                    circle(r = inner_gusset_radius, $fn = inner_gusset_steps);
+            }
+}
+
 module diamond_face_panel(face_x, normal_sign) {
-    face_y_span = overall_depth - left_rear_tab_y;
+    face_y0 = left_rear_tab_y + inner_gusset_radius;
+    face_y_span = overall_depth - face_y0;
 
     translate([
         face_x,
-        left_rear_tab_y + face_y_span / 2,
+        face_y0 + face_y_span / 2,
         overall_height / 2
     ])
         rotate([0, normal_sign > 0 ? 90 : -90, 0])
@@ -336,6 +357,7 @@ module red_minus_x_diamond_face() {
 module rear_features() {
     left_rear_tab();
     center_rear_rib();
+    rib_inner_radius_gussets();
 }
 
 module opening_cutters() {
@@ -365,6 +387,8 @@ module handle_model() {
             center_rear_rib();
         color(center_rib_color)
             red_minus_x_diamond_face();
+        color(middle_body_color)
+            rib_inner_radius_gussets();
     } else {
         color(single_material_color)
             union() {
