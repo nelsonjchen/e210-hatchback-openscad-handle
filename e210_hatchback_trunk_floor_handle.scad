@@ -237,9 +237,23 @@ module main_front_plate() {
     );
 }
 
+module green_origin_radius_cutter() {
+    translate([0, 0, -eps])
+        linear_extrude(height = overall_height + 2 * eps)
+            difference() {
+                square([inner_gusset_radius, inner_gusset_radius]);
+                translate([inner_gusset_radius, inner_gusset_radius])
+                    circle(r = inner_gusset_radius, $fn = inner_gusset_steps);
+            }
+}
+
 module left_body_connector() {
-    xz_extrude(0, left_rear_tab_width)
-        plate_region_2d(0, green_body_width);
+    difference() {
+        xz_extrude(0, left_rear_tab_width)
+            plate_region_2d(0, green_body_width);
+
+        green_origin_radius_cutter();
+    }
 }
 
 module right_front_plate() {
@@ -321,7 +335,7 @@ module rib_inner_radius_gussets() {
 }
 
 module diamond_face_panel(face_x, normal_sign) {
-    face_y0 = left_rear_tab_y + inner_gusset_radius;
+    face_y0 = left_rear_tab_y;
     face_y_span = overall_depth - face_y0;
 
     translate([
