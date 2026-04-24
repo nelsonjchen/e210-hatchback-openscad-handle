@@ -7,6 +7,8 @@
   geometry while keeping a reference overlay available for tuning.
 */
 
+include <BOSL2/std.scad>
+
 $fn = 72;
 
 show_reference = false;
@@ -17,6 +19,7 @@ show_cutters = false;
 plate_color = [0.95, 0.73, 0.16];
 middle_body_color = [0.05, 0.72, 0.22];
 right_body_color = [0.00, 0.75, 0.85];
+grip_rim_color = [0.78, 0.22, 0.95];
 left_tab_color = [0.10, 0.55, 0.85];
 center_rib_color = [0.95, 0.22, 0.18];
 opening_cutter_color = [0.95, 0.95, 1.00, 0.28];
@@ -35,58 +38,120 @@ rear_deburr_depth = 0.45;
 rear_deburr_width = 0.25;
 
 left_rear_tab_width = 3.99;
+left_rear_tab_y = left_rear_tab_width;
 rib_gap = 21.373;
 center_rib_x = left_rear_tab_width + rib_gap;
-center_rib_width = 3.00;
-center_rib_depth = overall_depth - plate_depth;
-left_rear_tab_y = left_rear_tab_width;
-handle_body_x = center_rib_x;
-handle_body_width = overall_width - handle_body_x;
+center_rib_width = left_rear_tab_width;
+center_rib_y = left_rear_tab_y;
+center_rib_depth = overall_depth - center_rib_y;
 
 opening_left = 28.40;
 opening_bottom = 3.95;
 opening_top = 32.90;
 opening_wall_x = 28.36;
 opening_bottom_z = 5.31;
-opening_top_z = 38.22;
-opening_mid_z = (opening_bottom_z + opening_top_z) / 2;
+opening_top_z = overall_height - opening_bottom_z;
+opening_mid_z = overall_height / 2;
 opening_half_height = (opening_top_z - opening_bottom_z) / 2;
 opening_edge_x = 37.30;
-opening_outer_x = 49.82;
-opening_scallop_depth = 2.20;
-opening_scallop_count = 3;
-opening_profile_samples = 96;
+opening_outer_x = 49.90;
+grip_rim_width = 1.85;
+grip_rim_bottom_width = opening_bottom_z;
+grip_rim_top_width = overall_height - opening_top_z;
+grip_rim_left_width = 1.85;
+grip_rim_depth = left_rear_tab_y;
+grip_rim_overlap = 0.08;
+green_body_width = center_rib_x + center_rib_width;
 
-function smoothstep(t) = t * t * (3 - 2 * t);
+function bez3(p0, p1, p2, p3, t) = [
+    pow(1 - t, 3) * p0[0]
+        + 3 * pow(1 - t, 2) * t * p1[0]
+        + 3 * (1 - t) * pow(t, 2) * p2[0]
+        + pow(t, 3) * p3[0],
+    pow(1 - t, 3) * p0[1]
+        + 3 * pow(1 - t, 2) * t * p1[1]
+        + 3 * (1 - t) * pow(t, 2) * p2[1]
+        + pow(t, 3) * p3[1]
+];
+
+function bez3_path(p0, p1, p2, p3, n, skip_first = true) = [
+    for (i = [(skip_first ? 1 : 0) : n])
+        bez3(p0, p1, p2, p3, i / n)
+];
+
 function clamp(v, lo, hi) = min(max(v, lo), hi);
-function scallop_phase(t) = (t - 0.14) / 0.72;
-function scallop_wave(t) =
-    let(p = clamp(scallop_phase(t), 0, 1))
-    pow(sin(180 * opening_scallop_count * p), 2);
-function opening_right_x(t) =
+function rim_outer_point(p) =
     let(
-        shoulder = pow(sin(180 * t), 0.58),
-        scallop_fade =
-            smoothstep(clamp((t - 0.12) / 0.16, 0, 1)) *
-            smoothstep(clamp((0.88 - t) / 0.16, 0, 1))
+        t = clamp(
+            (p[1] - opening_bottom_z) / (opening_top_z - opening_bottom_z),
+            0,
+            1
+        ),
+        bottom_drop = grip_rim_bottom_width * pow(1 - t, 2),
+        top_lift = grip_rim_top_width * pow(t, 2)
     )
-    opening_edge_x
-    + (opening_outer_x - opening_edge_x) * shoulder
-    - opening_scallop_depth * scallop_fade * scallop_wave(t);
+    [p[0] + grip_rim_width, clamp(p[1] + top_lift - bottom_drop, 0, overall_height)];
 
-// Smooth, mirrored handle opening. Coordinates are [x, z].
-opening_profile = concat(
+// Smooth lobes with preserved sharp finger-valley cusp points.
+opening_cusp_top = [47.61, opening_mid_z + 6.65];
+opening_cusp_mid = [47.61, opening_mid_z];
+opening_cusp_bottom = [47.61, opening_mid_z - 6.65];
+opening_lobe_top = [49.88, opening_mid_z + 10.49];
+opening_lobe_bottom = [49.88, opening_mid_z - 10.49];
+
+opening_profile_path = concat(
     [[opening_wall_x, opening_bottom_z], [opening_wall_x, opening_top_z]],
-    [
-        for (i = [0 : opening_profile_samples])
-            let(
-                t = i / opening_profile_samples,
-                z = opening_top_z - t * (opening_top_z - opening_bottom_z)
-            )
-            [opening_right_x(t), z]
-    ],
-    [[opening_wall_x, opening_bottom_z]]
+    bez3_path(
+        [opening_wall_x, opening_top_z],
+        [30.25, opening_top_z],
+        [33.60, opening_top_z],
+        [37.24, opening_top_z],
+        12
+    ),
+    bez3_path(
+        [37.24, opening_top_z],
+        [43.95, opening_top_z + 0.25],
+        [50.70, opening_mid_z + 13.40],
+        opening_lobe_top,
+        18
+    ),
+    bez3_path(
+        opening_lobe_top,
+        [49.60, opening_mid_z + 8.95],
+        [48.35, opening_mid_z + 7.20],
+        opening_cusp_top,
+        8
+    ),
+    bez3_path(
+        opening_cusp_top,
+        [51.15, opening_mid_z + 5.50],
+        [51.05, opening_mid_z + 1.35],
+        opening_cusp_mid,
+        18
+    ),
+    bez3_path(
+        opening_cusp_mid,
+        [51.05, opening_mid_z - 1.35],
+        [51.15, opening_mid_z - 5.50],
+        opening_cusp_bottom,
+        18
+    ),
+    bez3_path(
+        opening_cusp_bottom,
+        [48.35, opening_mid_z - 7.20],
+        [49.60, opening_mid_z - 8.95],
+        opening_lobe_bottom,
+        8
+    ),
+    bez3_path(
+        opening_lobe_bottom,
+        [50.70, opening_mid_z - 13.40],
+        [43.95, opening_bottom_z],
+        [37.24, opening_bottom_z],
+        18
+    )
 );
+opening_profile = concat(opening_profile_path, [[opening_wall_x, opening_bottom_z]]);
 
 eps = 0.02;
 
@@ -108,17 +173,17 @@ module finger_opening_2d(delta = 0) {
 
 module through_opening_cutter() {
     xz_extrude(-eps, plate_depth + 2 * eps)
-        finger_opening_2d(0);
+        finger_opening_2d(grip_rim_width - grip_rim_overlap);
 }
 
 module front_bevel_cutter() {
     xz_extrude(-eps, front_bevel_depth + eps)
-        finger_opening_2d(front_bevel_width);
+        finger_opening_2d(grip_rim_width + front_bevel_width);
 }
 
 module rear_deburr_cutter() {
     xz_extrude(plate_depth - rear_deburr_depth, rear_deburr_depth + eps)
-        finger_opening_2d(rear_deburr_width);
+        finger_opening_2d(grip_rim_width + rear_deburr_width);
 }
 
 module plate_region_2d(x0, width) {
@@ -169,31 +234,43 @@ module front_plate() {
 module main_front_plate() {
     front_plate_window(
         0,
-        handle_body_x,
+        green_body_width,
         left_rear_tab_width,
         plate_depth - left_rear_tab_width
     );
 }
 
 module left_body_connector() {
-    front_plate_window(
-        0,
-        handle_body_x,
-        0,
-        left_rear_tab_width
-    );
+    xz_extrude(0, left_rear_tab_width)
+        plate_region_2d(0, green_body_width);
 }
 
 module right_front_plate() {
-    front_plate_region(
-        handle_body_x,
-        handle_body_width
-    );
+}
+
+module grip_rim_2d() {
+    difference() {
+        polygon(concat(
+            [[opening_wall_x - grip_rim_left_width, 0]],
+            [[opening_wall_x - grip_rim_left_width, overall_height]],
+            [
+                for (i = [1 : len(opening_profile_path) - 1])
+                    rim_outer_point(opening_profile_path[i])
+            ]
+        ));
+        finger_opening_2d(0);
+    }
+}
+
+module grip_rim() {
+    xz_extrude(0, grip_rim_depth)
+        grip_rim_2d();
 }
 
 module front_body_parts() {
     left_body_connector();
     right_front_plate();
+    grip_rim();
 }
 
 module left_rear_tab() {
@@ -206,7 +283,7 @@ module left_rear_tab() {
 }
 
 module center_rear_rib() {
-    translate([center_rib_x, plate_depth, 0])
+    translate([center_rib_x, center_rib_y, 0])
         cube([
             center_rib_width,
             center_rib_depth,
@@ -236,6 +313,8 @@ module handle_model() {
             left_body_connector();
         color(right_body_color)
             right_front_plate();
+        color(grip_rim_color)
+            grip_rim();
         color(left_tab_color)
             left_rear_tab();
         color(center_rib_color)
