@@ -66,6 +66,11 @@ green_body_width = center_rib_x + center_rib_width;
 grip_rim_clip_left_x = opening_wall_x;
 grip_rim_x_shift = green_body_width - grip_rim_clip_left_x;
 
+diamond_texture = texture("diamonds", n = 2);
+diamond_texture_size = 4.00;
+diamond_texture_depth = 0.45;
+diamond_texture_backing = 0.12;
+
 function bez3(p0, p1, p2, p3, t) = [
     pow(1 - t, 3) * p0[0]
         + 3 * pow(1 - t, 2) * t * p1[0]
@@ -295,6 +300,39 @@ module center_rear_rib() {
         ]);
 }
 
+module diamond_face_panel(face_x, normal_sign) {
+    face_y_span = overall_depth - left_rear_tab_y;
+
+    translate([
+        face_x,
+        left_rear_tab_y + face_y_span / 2,
+        overall_height / 2
+    ])
+        rotate([0, normal_sign > 0 ? 90 : -90, 0])
+            textured_tile(
+                diamond_texture,
+                size = [
+                    overall_height,
+                    face_y_span,
+                    diamond_texture_backing
+                ],
+                tex_size = [
+                    diamond_texture_size,
+                    diamond_texture_size
+                ],
+                tex_depth = diamond_texture_depth,
+                style = "concave"
+            );
+}
+
+module blue_plus_x_diamond_face() {
+    diamond_face_panel(left_rear_tab_width, 1);
+}
+
+module red_minus_x_diamond_face() {
+    diamond_face_panel(center_rib_x, -1);
+}
+
 module rear_features() {
     left_rear_tab();
     center_rear_rib();
@@ -321,13 +359,19 @@ module handle_model() {
             grip_rim();
         color(left_tab_color)
             left_rear_tab();
+        color(left_tab_color)
+            blue_plus_x_diamond_face();
         color(center_rib_color)
             center_rear_rib();
+        color(center_rib_color)
+            red_minus_x_diamond_face();
     } else {
         color(single_material_color)
             union() {
                 front_body_parts();
                 rear_features();
+                blue_plus_x_diamond_face();
+                red_minus_x_diamond_face();
             }
     }
 }
