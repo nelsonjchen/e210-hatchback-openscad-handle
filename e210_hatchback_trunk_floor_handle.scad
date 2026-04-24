@@ -63,6 +63,8 @@ grip_rim_depth = left_rear_tab_y;
 grip_rim_mount_right_x = opening_wall_x + grip_rim_width;
 grip_rim_overlap = 0.08;
 green_body_width = center_rib_x + center_rib_width;
+grip_rim_clip_left_x = opening_wall_x;
+grip_rim_x_shift = green_body_width - grip_rim_clip_left_x;
 
 function bez3(p0, p1, p2, p3, t) = [
     pow(1 - t, 3) * p0[0]
@@ -251,26 +253,14 @@ module right_front_plate() {
 
 module grip_rim_2d() {
     difference() {
-        union() {
+        intersection() {
             offset(delta = grip_rim_width)
                 finger_opening_2d(0);
 
-            translate([opening_wall_x - grip_rim_left_width, -eps])
+            translate([grip_rim_clip_left_x, -eps])
                 square([
-                    grip_rim_left_width + grip_rim_overlap,
+                    overall_width,
                     overall_height + 2 * eps
-                ]);
-
-            translate([opening_wall_x - grip_rim_left_width, -eps])
-                square([
-                    grip_rim_mount_right_x - opening_wall_x + grip_rim_left_width,
-                    opening_bottom_z + eps
-                ]);
-
-            translate([opening_wall_x - grip_rim_left_width, opening_top_z])
-                square([
-                    grip_rim_mount_right_x - opening_wall_x + grip_rim_left_width,
-                    overall_height - opening_top_z + eps
                 ]);
         }
         finger_opening_2d(0);
@@ -278,8 +268,9 @@ module grip_rim_2d() {
 }
 
 module grip_rim() {
-    xz_extrude(0, grip_rim_depth)
-        grip_rim_2d();
+    translate([grip_rim_x_shift, 0, 0])
+        xz_extrude(0, grip_rim_depth)
+            grip_rim_2d();
 }
 
 module front_body_parts() {
