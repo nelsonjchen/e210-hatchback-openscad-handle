@@ -55,11 +55,12 @@ opening_mid_z = overall_height / 2;
 opening_half_height = (opening_top_z - opening_bottom_z) / 2;
 opening_edge_x = 37.30;
 opening_outer_x = 49.90;
-grip_rim_width = 1.85;
 grip_rim_bottom_width = opening_bottom_z;
 grip_rim_top_width = overall_height - opening_top_z;
+grip_rim_width = grip_rim_bottom_width;
 grip_rim_left_width = 1.85;
 grip_rim_depth = left_rear_tab_y;
+grip_rim_mount_right_x = opening_wall_x + grip_rim_width;
 grip_rim_overlap = 0.08;
 green_body_width = center_rib_x + center_rib_width;
 
@@ -250,14 +251,28 @@ module right_front_plate() {
 
 module grip_rim_2d() {
     difference() {
-        polygon(concat(
-            [[opening_wall_x - grip_rim_left_width, 0]],
-            [[opening_wall_x - grip_rim_left_width, overall_height]],
-            [
-                for (i = [1 : len(opening_profile_path) - 1])
-                    rim_outer_point(opening_profile_path[i])
-            ]
-        ));
+        union() {
+            offset(delta = grip_rim_width)
+                finger_opening_2d(0);
+
+            translate([opening_wall_x - grip_rim_left_width, -eps])
+                square([
+                    grip_rim_left_width + grip_rim_overlap,
+                    overall_height + 2 * eps
+                ]);
+
+            translate([opening_wall_x - grip_rim_left_width, -eps])
+                square([
+                    grip_rim_mount_right_x - opening_wall_x + grip_rim_left_width,
+                    opening_bottom_z + eps
+                ]);
+
+            translate([opening_wall_x - grip_rim_left_width, opening_top_z])
+                square([
+                    grip_rim_mount_right_x - opening_wall_x + grip_rim_left_width,
+                    overall_height - opening_top_z + eps
+                ]);
+        }
         finger_opening_2d(0);
     }
 }
