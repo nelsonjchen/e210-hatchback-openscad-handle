@@ -11,6 +11,19 @@ $fn = 72;
 
 show_reference = false;
 show_model = true;
+colorize_parts = true;
+show_cutters = false;
+
+plate_color = [0.95, 0.73, 0.16];
+center_body_color = [0.78, 0.22, 0.95];
+adjacent_body_color = [1.00, 0.86, 0.05];
+middle_body_color = [0.05, 0.72, 0.22];
+right_body_color = [0.00, 0.75, 0.85];
+left_tab_color = [0.10, 0.55, 0.85];
+center_rib_color = [0.95, 0.22, 0.18];
+opening_cutter_color = [0.95, 0.95, 1.00, 0.28];
+bevel_cutter_color = [0.50, 0.20, 0.90, 0.22];
+single_material_color = [0.93, 0.78, 0.18];
 
 // Measured specimen bounds after normalizing the STL to min corner at 0,0,0.
 overall_width = 53.57;
@@ -19,18 +32,60 @@ overall_height = 43.70;
 
 plate_depth = 8.10;
 front_bevel_depth = 1.00;
+front_bevel_width = 0.45;
 rear_deburr_depth = 0.45;
+rear_deburr_width = 0.25;
 
 left_rear_tab_width = 3.99;
-center_rib_x = 25.40;
+rib_gap = 21.373;
+center_rib_x = left_rear_tab_width + rib_gap;
 center_rib_width = 3.00;
-center_rib_depth = 20.80;
-center_rib_z = 10.80;
+center_rib_depth = overall_depth - plate_depth;
+left_rear_tab_y = left_rear_tab_width;
+center_body_x = center_rib_x;
+center_body_width = left_rear_tab_width;
+adjacent_body_x = center_body_x + center_body_width;
+adjacent_body_width = left_rear_tab_width;
+middle_body_x = adjacent_body_x + adjacent_body_width;
+middle_body_width = overall_width - middle_body_x;
 
 opening_left = 28.40;
 opening_bottom = 3.95;
 opening_top = 32.90;
-opening_samples = 72;
+
+// Front-plane loop extracted from the specimen mesh, then lightly simplified.
+// Coordinates are [x, z]. The left vertical edge is the straight grip wall and
+// the right side carries the raised shoulder plus finger scallops.
+opening_profile_points = [
+    [28.36, 5.31],
+    [28.36, 32.82],
+    [37.24, 38.22],
+    [42.06, 37.62],
+    [46.11, 36.29],
+    [48.81, 34.46],
+    [49.88, 32.34],
+    [49.03, 29.98],
+    [47.61, 28.35],
+    [49.03, 26.94],
+    [49.50, 24.71],
+    [49.01, 23.23],
+    [47.61, 21.71],
+    [49.05, 20.27],
+    [49.58, 18.00],
+    [49.07, 16.48],
+    [47.61, 15.02],
+    [49.09, 13.33],
+    [49.88, 11.68],
+    [49.58, 10.15],
+    [48.43, 8.70],
+    [46.50, 7.45],
+    [43.86, 6.40],
+    [40.75, 5.70],
+    [37.30, 5.31],
+    [28.36, 5.31]
+];
+
+opening_profile = opening_profile_points;
 
 eps = 0.02;
 
@@ -45,31 +100,54 @@ module plate_outline_2d() {
     square([overall_width, overall_height]);
 }
 
-function gauss(u, c, w) = exp(-pow((u - c) / w, 2));
-
-// Right side of the cutout: a broad pull loop with three/four finger scallops.
-function opening_right_x(u) =
-    opening_left
-    + 7.0
-    + 14.4 * pow(max(0, sin(180 * u)), 0.72)
-    - 3.8 * gauss(u, 0.30, 0.050)
-    - 4.2 * gauss(u, 0.51, 0.055)
-    - 3.9 * gauss(u, 0.72, 0.055);
-
 module finger_opening_2d(delta = 0) {
     offset(delta = delta)
-        polygon(concat(
-            [[opening_left, opening_top]],
-            [
-                for (i = [0 : opening_samples])
-                    let(
-                        u = i / opening_samples,
-                        z = opening_top - u * (opening_top - opening_bottom)
-                    )
-                    [opening_right_x(u), z]
-            ],
-            [[opening_left, opening_bottom]]
-        ));
+        polygon(opening_profile);
+}
+
+module through_opening_cutter() {
+    xz_extrude(-eps, plate_depth + 2 * eps)
+        finger_opening_2d(0);
+}
+
+module front_bevel_cutter() {
+    xz_extrude(-eps, front_bevel_depth + eps)
+        finger_opening_2d(front_bevel_width);
+}
+
+module rear_deburr_cutter() {
+    xz_extrude(plate_depth - rear_deburr_depth, rear_deburr_depth + eps)
+        finger_opening_2d(rear_deburr_width);
+}
+
+module plate_region_2d(x0, width) {
+    intersection() {
+        plate_outline_2d();
+        translate([x0, -eps])
+            square([width, overall_height + 2 * eps]);
+    }
+}
+
+module front_plate_region(x0, width) {
+    difference() {
+        xz_extrude(0, plate_depth)
+            plate_region_2d(x0, width);
+
+        through_opening_cutter();
+        front_bevel_cutter();
+        rear_deburr_cutter();
+    }
+}
+
+module front_plate_window(x0, width, y0, depth) {
+    difference() {
+        xz_extrude(y0, depth)
+            plate_region_2d(x0, width);
+
+        through_opening_cutter();
+        front_bevel_cutter();
+        rear_deburr_cutter();
+    }
 }
 
 module front_plate() {
@@ -78,44 +156,109 @@ module front_plate() {
             plate_outline_2d();
 
         // Through-opening for fingers.
-        xz_extrude(-eps, plate_depth + 2 * eps)
-            finger_opening_2d(0);
+        through_opening_cutter();
 
         // Wider shallow cuts approximate the softened lip visible on the STL.
-        xz_extrude(-eps, front_bevel_depth + eps)
-            finger_opening_2d(0.85);
+        front_bevel_cutter();
 
-        xz_extrude(plate_depth - rear_deburr_depth, rear_deburr_depth + eps)
-            finger_opening_2d(0.35);
+        rear_deburr_cutter();
     }
 }
 
-module rear_features() {
-    // Tall left return wall / mounting tab.
-    translate([0, plate_depth, 0])
+module main_front_plate() {
+    front_plate_window(
+        0,
+        center_body_x,
+        left_rear_tab_width,
+        plate_depth - left_rear_tab_width
+    );
+}
+
+module left_body_connector() {
+    front_plate_window(
+        0,
+        center_body_x,
+        0,
+        left_rear_tab_width
+    );
+}
+
+module right_front_plate() {
+    front_plate_region(
+        middle_body_x,
+        middle_body_width
+    );
+}
+
+module center_body_plate() {
+    front_plate_region(center_body_x, center_body_width);
+}
+
+module adjacent_body_plate() {
+    front_plate_region(adjacent_body_x, adjacent_body_width);
+}
+
+module front_body_parts() {
+    left_body_connector();
+    center_body_plate();
+    adjacent_body_plate();
+    right_front_plate();
+}
+
+module left_rear_tab() {
+    translate([0, left_rear_tab_y, 0])
         cube([
             left_rear_tab_width,
-            overall_depth - plate_depth,
+            overall_depth - left_rear_tab_y,
             overall_height
         ]);
+}
 
-    // Interior rib behind the handle opening.
-    translate([center_rib_x, plate_depth, center_rib_z])
+module center_rear_rib() {
+    translate([center_rib_x, plate_depth, 0])
         cube([
             center_rib_width,
             center_rib_depth,
-            overall_height - center_rib_z
+            overall_height
         ]);
+}
 
-    // Small lower shelf visible inside the grip opening.
-    translate([opening_left + 0.20, plate_depth - 0.10, opening_bottom - 0.10])
-        cube([overall_width - opening_left - 4.2, 3.2, 1.5]);
+module rear_features() {
+    left_rear_tab();
+    center_rear_rib();
+}
+
+module opening_cutters() {
+    color(opening_cutter_color)
+        through_opening_cutter();
+
+    color(bevel_cutter_color)
+        front_bevel_cutter();
+
+    color(bevel_cutter_color)
+        rear_deburr_cutter();
 }
 
 module handle_model() {
-    union() {
-        front_plate();
-        rear_features();
+    if (colorize_parts) {
+        color(middle_body_color)
+            left_body_connector();
+        color(center_body_color)
+            center_body_plate();
+        color(adjacent_body_color)
+            adjacent_body_plate();
+        color(right_body_color)
+            right_front_plate();
+        color(left_tab_color)
+            left_rear_tab();
+        color(center_rib_color)
+            center_rear_rib();
+    } else {
+        color(single_material_color)
+            union() {
+                front_body_parts();
+                rear_features();
+            }
     }
 }
 
@@ -131,6 +274,9 @@ if (show_reference) {
 }
 
 if (show_model) {
-    color([0.93, 0.78, 0.18])
-        handle_model();
+    handle_model();
+}
+
+if (show_cutters) {
+    opening_cutters();
 }
