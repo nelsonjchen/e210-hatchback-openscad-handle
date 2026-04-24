@@ -9,7 +9,7 @@
 
 include <BOSL2/std.scad>
 
-$fn = 72;
+$fn = 144;
 
 show_reference = false;
 show_model = true;
@@ -71,7 +71,7 @@ diamond_texture_size = 4.00;
 diamond_texture_depth = 0.45;
 diamond_texture_backing = 0.12;
 inner_gusset_radius = 4.00;
-inner_gusset_steps = 24;
+inner_gusset_steps = 48;
 rib_tip_radius = left_rear_tab_width / 2;
 left_elbow_outer_radius = inner_gusset_radius + left_rear_tab_width;
 
@@ -105,49 +105,49 @@ opening_profile_path = concat(
         [30.25, opening_top_z],
         [33.60, opening_top_z],
         [37.24, opening_top_z],
-        12
+        24
     ),
     bez3_path(
         [37.24, opening_top_z],
         [43.95, opening_top_z + 0.25],
         [50.70, opening_mid_z + 13.40],
         opening_lobe_top,
-        18
+        36
     ),
     bez3_path(
         opening_lobe_top,
         [49.60, opening_mid_z + 8.95],
         [48.35, opening_mid_z + 7.20],
         opening_cusp_top,
-        8
+        16
     ),
     bez3_path(
         opening_cusp_top,
         [51.15, opening_mid_z + 5.50],
         [51.05, opening_mid_z + 1.35],
         opening_cusp_mid,
-        18
+        36
     ),
     bez3_path(
         opening_cusp_mid,
         [51.05, opening_mid_z - 1.35],
         [51.15, opening_mid_z - 5.50],
         opening_cusp_bottom,
-        18
+        36
     ),
     bez3_path(
         opening_cusp_bottom,
         [48.35, opening_mid_z - 7.20],
         [49.60, opening_mid_z - 8.95],
         opening_lobe_bottom,
-        8
+        16
     ),
     bez3_path(
         opening_lobe_bottom,
         [50.70, opening_mid_z - 13.40],
         [43.95, opening_bottom_z],
         [37.24, opening_bottom_z],
-        18
+        36
     )
 );
 opening_profile = concat(opening_profile_path, [[opening_wall_x, opening_bottom_z]]);
