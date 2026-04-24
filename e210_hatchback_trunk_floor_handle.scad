@@ -72,6 +72,7 @@ diamond_texture_depth = 0.45;
 diamond_texture_backing = 0.12;
 inner_gusset_radius = 4.00;
 inner_gusset_steps = 24;
+rib_tip_radius = left_rear_tab_width / 2;
 
 function bez3(p0, p1, p2, p3, t) = [
     pow(1 - t, 3) * p0[0]
@@ -316,6 +317,24 @@ module center_rear_rib() {
         ]);
 }
 
+module rib_tip_cap(x0, width) {
+    translate([x0 + width / 2, overall_depth, 0])
+        linear_extrude(height = overall_height)
+            intersection() {
+                circle(r = width / 2, $fn = inner_gusset_steps);
+                translate([-width / 2 - eps, 0])
+                    square([width + 2 * eps, width / 2 + eps]);
+            }
+}
+
+module blue_tip_cap() {
+    rib_tip_cap(0, left_rear_tab_width);
+}
+
+module red_tip_cap() {
+    rib_tip_cap(center_rib_x, center_rib_width);
+}
+
 module rib_inner_radius_gussets() {
     linear_extrude(height = overall_height)
         translate([left_rear_tab_width, left_rear_tab_y])
@@ -371,6 +390,8 @@ module red_minus_x_diamond_face() {
 module rear_features() {
     left_rear_tab();
     center_rear_rib();
+    blue_tip_cap();
+    red_tip_cap();
     rib_inner_radius_gussets();
 }
 
@@ -396,9 +417,13 @@ module handle_model() {
         color(left_tab_color)
             left_rear_tab();
         color(left_tab_color)
+            blue_tip_cap();
+        color(left_tab_color)
             blue_plus_x_diamond_face();
         color(center_rib_color)
             center_rear_rib();
+        color(center_rib_color)
+            red_tip_cap();
         color(center_rib_color)
             red_minus_x_diamond_face();
         color(middle_body_color)
