@@ -15,8 +15,6 @@ colorize_parts = true;
 show_cutters = false;
 
 plate_color = [0.95, 0.73, 0.16];
-center_body_color = [0.78, 0.22, 0.95];
-adjacent_body_color = [1.00, 0.86, 0.05];
 middle_body_color = [0.05, 0.72, 0.22];
 right_body_color = [0.00, 0.75, 0.85];
 left_tab_color = [0.10, 0.55, 0.85];
@@ -42,50 +40,53 @@ center_rib_x = left_rear_tab_width + rib_gap;
 center_rib_width = 3.00;
 center_rib_depth = overall_depth - plate_depth;
 left_rear_tab_y = left_rear_tab_width;
-center_body_x = center_rib_x;
-center_body_width = left_rear_tab_width;
-adjacent_body_x = center_body_x + center_body_width;
-adjacent_body_width = left_rear_tab_width;
-middle_body_x = adjacent_body_x + adjacent_body_width;
-middle_body_width = overall_width - middle_body_x;
+handle_body_x = center_rib_x;
+handle_body_width = overall_width - handle_body_x;
 
 opening_left = 28.40;
 opening_bottom = 3.95;
 opening_top = 32.90;
+opening_wall_x = 28.36;
+opening_bottom_z = 5.31;
+opening_top_z = 38.22;
+opening_mid_z = (opening_bottom_z + opening_top_z) / 2;
+opening_half_height = (opening_top_z - opening_bottom_z) / 2;
+opening_edge_x = 37.30;
+opening_outer_x = 49.82;
+opening_scallop_depth = 2.20;
+opening_scallop_count = 3;
+opening_profile_samples = 96;
 
-// Front-plane loop extracted from the specimen mesh, then lightly simplified.
-// Coordinates are [x, z]. The left vertical edge is the straight grip wall and
-// the right side carries the raised shoulder plus finger scallops.
-opening_profile_points = [
-    [28.36, 5.31],
-    [28.36, 32.82],
-    [37.24, 38.22],
-    [42.06, 37.62],
-    [46.11, 36.29],
-    [48.81, 34.46],
-    [49.88, 32.34],
-    [49.03, 29.98],
-    [47.61, 28.35],
-    [49.03, 26.94],
-    [49.50, 24.71],
-    [49.01, 23.23],
-    [47.61, 21.71],
-    [49.05, 20.27],
-    [49.58, 18.00],
-    [49.07, 16.48],
-    [47.61, 15.02],
-    [49.09, 13.33],
-    [49.88, 11.68],
-    [49.58, 10.15],
-    [48.43, 8.70],
-    [46.50, 7.45],
-    [43.86, 6.40],
-    [40.75, 5.70],
-    [37.30, 5.31],
-    [28.36, 5.31]
-];
+function smoothstep(t) = t * t * (3 - 2 * t);
+function clamp(v, lo, hi) = min(max(v, lo), hi);
+function scallop_phase(t) = (t - 0.14) / 0.72;
+function scallop_wave(t) =
+    let(p = clamp(scallop_phase(t), 0, 1))
+    pow(sin(180 * opening_scallop_count * p), 2);
+function opening_right_x(t) =
+    let(
+        shoulder = pow(sin(180 * t), 0.58),
+        scallop_fade =
+            smoothstep(clamp((t - 0.12) / 0.16, 0, 1)) *
+            smoothstep(clamp((0.88 - t) / 0.16, 0, 1))
+    )
+    opening_edge_x
+    + (opening_outer_x - opening_edge_x) * shoulder
+    - opening_scallop_depth * scallop_fade * scallop_wave(t);
 
-opening_profile = opening_profile_points;
+// Smooth, mirrored handle opening. Coordinates are [x, z].
+opening_profile = concat(
+    [[opening_wall_x, opening_bottom_z], [opening_wall_x, opening_top_z]],
+    [
+        for (i = [0 : opening_profile_samples])
+            let(
+                t = i / opening_profile_samples,
+                z = opening_top_z - t * (opening_top_z - opening_bottom_z)
+            )
+            [opening_right_x(t), z]
+    ],
+    [[opening_wall_x, opening_bottom_z]]
+);
 
 eps = 0.02;
 
@@ -168,7 +169,7 @@ module front_plate() {
 module main_front_plate() {
     front_plate_window(
         0,
-        center_body_x,
+        handle_body_x,
         left_rear_tab_width,
         plate_depth - left_rear_tab_width
     );
@@ -177,7 +178,7 @@ module main_front_plate() {
 module left_body_connector() {
     front_plate_window(
         0,
-        center_body_x,
+        handle_body_x,
         0,
         left_rear_tab_width
     );
@@ -185,23 +186,13 @@ module left_body_connector() {
 
 module right_front_plate() {
     front_plate_region(
-        middle_body_x,
-        middle_body_width
+        handle_body_x,
+        handle_body_width
     );
-}
-
-module center_body_plate() {
-    front_plate_region(center_body_x, center_body_width);
-}
-
-module adjacent_body_plate() {
-    front_plate_region(adjacent_body_x, adjacent_body_width);
 }
 
 module front_body_parts() {
     left_body_connector();
-    center_body_plate();
-    adjacent_body_plate();
     right_front_plate();
 }
 
@@ -243,10 +234,6 @@ module handle_model() {
     if (colorize_parts) {
         color(middle_body_color)
             left_body_connector();
-        color(center_body_color)
-            center_body_plate();
-        color(adjacent_body_color)
-            adjacent_body_plate();
         color(right_body_color)
             right_front_plate();
         color(left_tab_color)
