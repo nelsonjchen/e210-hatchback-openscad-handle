@@ -15,11 +15,16 @@ show_reference = false;
 show_model = true;
 colorize_parts = true;
 show_cutters = false;
+show_shoe_hull_elements = true;
+show_only_shoe_hull_elements = true;
+show_red_rib_with_shoe_hull_elements = true;
 
 plate_color = [0.95, 0.73, 0.16];
 middle_body_color = [0.05, 0.72, 0.22];
 right_body_color = [0.00, 0.75, 0.85];
 grip_rim_color = [0.78, 0.22, 0.95];
+shoe_hull_color = [1.00, 0.82, 0.00];
+shoe_hull_element_color = [0.00, 0.80, 0.85];
 left_tab_color = [0.10, 0.55, 0.85];
 center_rib_color = [0.95, 0.22, 0.18];
 opening_cutter_color = [0.95, 0.95, 1.00, 0.28];
@@ -65,6 +70,13 @@ grip_rim_overlap = 0.08;
 green_body_width = center_rib_x + center_rib_width;
 grip_rim_clip_left_x = opening_wall_x;
 grip_rim_x_shift = green_body_width - grip_rim_clip_left_x;
+shoe_depth = center_rib_width;
+shoe_slice_depth = 0.18;
+shoe_element_overlay_y = 0.05;
+shoe_element_overlay_x = 0.05;
+shoe_border_face_x = green_body_width;
+shoe_border_y0 = grip_rim_depth - shoe_slice_depth;
+shoe_border_y1 = overall_depth;
 
 function bez3(p0, p1, p2, p3, t) = [
     pow(1 - t, 3) * p0[0]
@@ -267,16 +279,91 @@ module grip_rim_2d() {
     }
 }
 
+module grip_rim_segment_2d(z0, z1) {
+    intersection() {
+        grip_rim_2d();
+        translate([grip_rim_clip_left_x - eps, z0])
+            square([
+                overall_width,
+                z1 - z0
+            ]);
+    }
+}
+
+module shoe_border_segment_on_red_x_face(z0, z1, x_offset = 0) {
+    if (z1 <= opening_bottom_z + eps) {
+        translate([shoe_border_face_x + x_offset, shoe_border_y0, z0])
+            cube([
+                shoe_slice_depth,
+                shoe_border_y1 - shoe_border_y0,
+                z1 - z0
+            ]);
+    } else if (z0 >= opening_top_z - eps) {
+        translate([shoe_border_face_x + x_offset, shoe_border_y0, z0])
+            cube([
+                shoe_slice_depth,
+                shoe_border_y1 - shoe_border_y0,
+                z1 - z0
+            ]);
+    } else {
+        translate([
+            shoe_border_face_x + x_offset,
+            shoe_border_y1 - grip_rim_width,
+            z0
+        ])
+            cube([
+                shoe_slice_depth,
+                grip_rim_width,
+                z1 - z0
+            ]);
+    }
+}
+
 module grip_rim() {
     translate([grip_rim_x_shift, 0, 0])
         xz_extrude(0, grip_rim_depth)
             grip_rim_2d();
 }
 
+module grip_shoe_hull_segment(z0, z1) {
+    hull() {
+        translate([grip_rim_x_shift, 0, 0])
+            xz_extrude(grip_rim_depth - shoe_slice_depth, shoe_slice_depth)
+                grip_rim_segment_2d(z0, z1);
+
+        shoe_border_segment_on_red_x_face(z0, z1);
+    }
+}
+
+module grip_shoe_hull() {
+    grip_shoe_hull_segment(0, opening_bottom_z);
+    grip_shoe_hull_segment(opening_bottom_z, opening_top_z);
+    grip_shoe_hull_segment(opening_top_z, overall_height);
+}
+
+module grip_shoe_hull_elements() {
+    for (zrange = [
+        [0, opening_bottom_z],
+        [opening_bottom_z, opening_top_z],
+        [opening_top_z, overall_height]
+    ]) {
+        translate([grip_rim_x_shift, shoe_element_overlay_y, 0])
+            xz_extrude(grip_rim_depth - shoe_slice_depth, shoe_slice_depth)
+                grip_rim_segment_2d(zrange[0], zrange[1]);
+
+        shoe_border_segment_on_red_x_face(
+            zrange[0],
+            zrange[1],
+            shoe_element_overlay_x
+        );
+    }
+}
+
 module front_body_parts() {
     left_body_connector();
     right_front_plate();
     grip_rim();
+    grip_shoe_hull();
 }
 
 module left_rear_tab() {
@@ -314,6 +401,13 @@ module opening_cutters() {
 }
 
 module handle_model() {
+    if (show_only_shoe_hull_elements) {
+        if (show_red_rib_with_shoe_hull_elements)
+            color(center_rib_color)
+                center_rear_rib();
+        color(shoe_hull_element_color)
+            grip_shoe_hull_elements();
+    } else
     if (colorize_parts) {
         color(middle_body_color)
             left_body_connector();
@@ -321,6 +415,11 @@ module handle_model() {
             right_front_plate();
         color(grip_rim_color)
             grip_rim();
+        color(shoe_hull_color)
+            grip_shoe_hull();
+        if (show_shoe_hull_elements)
+            color(shoe_hull_element_color)
+                grip_shoe_hull_elements();
         color(left_tab_color)
             left_rear_tab();
         color(center_rib_color)
