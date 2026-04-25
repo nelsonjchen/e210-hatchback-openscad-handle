@@ -68,7 +68,7 @@ grip_rim_x_shift = green_body_width - grip_rim_clip_left_x;
 
 diamond_texture = texture("diamonds", n = 2);
 diamond_texture_size = 4.00;
-diamond_texture_depth = 0.45;
+diamond_texture_depth = 1.00;
 diamond_texture_backing = 0.12;
 inner_gusset_radius = 4.00;
 inner_gusset_steps = 48;
