@@ -50,6 +50,11 @@ specimen STL is not redistributed in this repository; if you have a local
 reference specimen, keep it under `specimen/` and use the `show_reference`
 toggle in the SCAD file for private alignment/tuning.
 
+## Acknowledgements
+
+A lot of this design was inspired by the MakerWorld model
+[Corolla Hatchback Trunk Floor Handle](https://makerworld.com/en/models/1582723-corolla-hatchback-trunk-floor-handle?from=search#profileId-1666001).
+
 ## License
 
 Licensed under the Creative Commons Attribution-NonCommercial-ShareAlike 4.0
