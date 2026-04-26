@@ -3,12 +3,16 @@
 Parametric OpenSCAD model for a trunk-floor handle used with the Toyota deck
 board assembly `58410-12050-C0`.
 
-This is a reverse-engineered, printable approximation rather than an official
-Toyota part. It is intended for fit tuning and replacement-print experiments.
-
 ## Compatibility
 
 Intended for 2019-2025 Toyota Corolla Hatchbacks equipped with a spare tire.
+
+Fitment is unknown for the GR Corolla. It appears to have a similar notch on
+the trunk floor, but the relevant floor/slot thickness has not been verified.
+
+Fitment is also unknown for Corolla Hatchbacks with the Enhanced Cargo Space
+option. I do not know whether those cars have the same slot or whether this
+handle is applicable there.
 
 Related OEM deck board:
 [Toyota board assembly deck `58410-12050-C0`](https://autoparts.toyota.com/products/product/board-assy-deck-5841012050c0)
