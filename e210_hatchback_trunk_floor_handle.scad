@@ -1,32 +1,57 @@
 /*
   Parametric approximation of the E210 Corolla hatchback trunk-floor handle
-  specimen in specimen/corolla+hatchback+trunk+floor+handle.stl.
+  used with Toyota deck board assembly 58410-12050-C0.
 
-  The source STL appears to be in millimeters. This file is intentionally not
-  an STL import wrapper: it rebuilds the main features as editable OpenSCAD
-  geometry while keeping a reference overlay available for tuning.
+  This file rebuilds the main features as editable OpenSCAD geometry.
 */
 
 include <BOSL2/std.scad>
 
+/* [Output] */
+
+print_quantity = 1; // [1:Single handle, 2:Pair for both trunk-floor slots]
+
+/* [Fit and Print Controls] */
+
+rear_rib_thickness_mm = 3.99; // [3.50:0.01:4.50]
+rib_gap_mm = 21.373; // [20.50:0.001:22.50]
+handle_depth_mm = 8.146; // [6.00:0.01:10.00]
+inner_corner_radius_mm = 4.00; // [1.00:0.25:8.00]
+
+/* [Grip Texture] */
+
+show_diamond_texture = true;
+diamond_texture_pitch_mm = 4.00; // [2.00:0.25:8.00]
+diamond_texture_depth_mm = 1.00; // [0.00:0.05:1.50]
+
+/* [Debug Visualization] */
+
+show_part_colors = false;
+body_color_hex = "#0DB838"; // color
+handle_color_hex = "#C738F2"; // color
+left_rib_color_hex = "#1A8CD8"; // color
+center_rib_color_hex = "#F2382E"; // color
+single_material_color_hex = "#EDC72E"; // color
+
+/* [Hidden] */
+
 $fn = 144;
 
-show_reference = false;
 show_model = true;
-colorize_parts = true;
+colorize_parts = show_part_colors;
 show_cutters = false;
 
 plate_color = [0.95, 0.73, 0.16];
-middle_body_color = [0.05, 0.72, 0.22];
+middle_body_color = body_color_hex;
 right_body_color = [0.00, 0.75, 0.85];
-grip_rim_color = [0.78, 0.22, 0.95];
-left_tab_color = [0.10, 0.55, 0.85];
-center_rib_color = [0.95, 0.22, 0.18];
+grip_rim_color = handle_color_hex;
+left_tab_color = left_rib_color_hex;
+center_rib_color = center_rib_color_hex;
 opening_cutter_color = [0.95, 0.95, 1.00, 0.28];
 bevel_cutter_color = [0.50, 0.20, 0.90, 0.22];
-single_material_color = [0.93, 0.78, 0.18];
+single_material_color = single_material_color_hex;
 
-// Measured specimen bounds after normalizing the STL to min corner at 0,0,0.
+// Measured handle bounds, normalized to min corner at 0,0,0.
 overall_width = 53.57;
 overall_depth = 33.92;
 overall_height = 43.70;
@@ -37,9 +62,9 @@ front_bevel_width = 0.45;
 rear_deburr_depth = 0.45;
 rear_deburr_width = 0.25;
 
-left_rear_tab_width = 3.99;
+left_rear_tab_width = rear_rib_thickness_mm;
 left_rear_tab_y = left_rear_tab_width;
-rib_gap = 21.373;
+rib_gap = rib_gap_mm;
 center_rib_x = left_rear_tab_width + rib_gap;
 center_rib_width = left_rear_tab_width;
 center_rib_y = left_rear_tab_y;
@@ -59,7 +84,7 @@ grip_rim_bottom_width = opening_bottom_z;
 grip_rim_top_width = overall_height - opening_top_z;
 grip_rim_width = grip_rim_bottom_width;
 grip_rim_left_width = 1.85;
-grip_rim_depth = 8.146;
+grip_rim_depth = handle_depth_mm;
 grip_rim_mount_right_x = opening_wall_x + grip_rim_width;
 grip_rim_overlap = 0.08;
 green_body_width = center_rib_x + center_rib_width;
@@ -67,13 +92,19 @@ grip_rim_clip_left_x = opening_wall_x;
 grip_rim_x_shift = green_body_width - grip_rim_clip_left_x;
 
 diamond_texture = texture("diamonds", n = 2);
-diamond_texture_size = 4.00;
-diamond_texture_depth = 1.00;
+diamond_texture_size = diamond_texture_pitch_mm;
+diamond_texture_depth = diamond_texture_depth_mm;
 diamond_texture_backing = 0.12;
-inner_gusset_radius = 4.00;
+inner_gusset_radius = inner_corner_radius_mm;
 inner_gusset_steps = 48;
 rib_tip_radius = left_rear_tab_width / 2;
 left_elbow_outer_radius = inner_gusset_radius + left_rear_tab_width;
+
+opening_end_steps = 24;
+opening_lobe_steps = 36;
+opening_cusp_steps = 16;
+copy_gap_mm = 8.00;
+copy_pitch_x = overall_width + copy_gap_mm;
 
 function bez3(p0, p1, p2, p3, t) = [
     pow(1 - t, 3) * p0[0]
@@ -105,49 +136,49 @@ opening_profile_path = concat(
         [30.25, opening_top_z],
         [33.60, opening_top_z],
         [37.24, opening_top_z],
-        24
+        opening_end_steps
     ),
     bez3_path(
         [37.24, opening_top_z],
         [43.95, opening_top_z + 0.25],
         [50.70, opening_mid_z + 13.40],
         opening_lobe_top,
-        36
+        opening_lobe_steps
     ),
     bez3_path(
         opening_lobe_top,
         [49.60, opening_mid_z + 8.95],
         [48.35, opening_mid_z + 7.20],
         opening_cusp_top,
-        16
+        opening_cusp_steps
     ),
     bez3_path(
         opening_cusp_top,
         [51.15, opening_mid_z + 5.50],
         [51.05, opening_mid_z + 1.35],
         opening_cusp_mid,
-        36
+        opening_lobe_steps
     ),
     bez3_path(
         opening_cusp_mid,
         [51.05, opening_mid_z - 1.35],
         [51.15, opening_mid_z - 5.50],
         opening_cusp_bottom,
-        36
+        opening_lobe_steps
     ),
     bez3_path(
         opening_cusp_bottom,
         [48.35, opening_mid_z - 7.20],
         [49.60, opening_mid_z - 8.95],
         opening_lobe_bottom,
-        16
+        opening_cusp_steps
     ),
     bez3_path(
         opening_lobe_bottom,
         [50.70, opening_mid_z - 13.40],
         [43.95, opening_bottom_z],
         [37.24, opening_bottom_z],
-        36
+        opening_lobe_steps
     )
 );
 opening_profile = concat(opening_profile_path, [[opening_wall_x, opening_bottom_z]]);
@@ -432,14 +463,16 @@ module handle_model() {
             left_rear_tab();
         color(left_tab_color)
             blue_tip_cap();
-        color(left_tab_color)
-            blue_plus_x_diamond_face();
+        if (show_diamond_texture)
+            color(left_tab_color)
+                blue_plus_x_diamond_face();
         color(center_rib_color)
             center_rear_rib();
         color(center_rib_color)
             red_tip_cap();
-        color(center_rib_color)
-            red_minus_x_diamond_face();
+        if (show_diamond_texture)
+            color(center_rib_color)
+                red_minus_x_diamond_face();
         color(middle_body_color)
             rib_inner_radius_gussets();
     } else {
@@ -447,25 +480,22 @@ module handle_model() {
             union() {
                 front_body_parts();
                 rear_features();
-                blue_plus_x_diamond_face();
-                red_minus_x_diamond_face();
+                if (show_diamond_texture) {
+                    blue_plus_x_diamond_face();
+                    red_minus_x_diamond_face();
+                }
             }
     }
 }
 
-module reference_stl(alpha = 0.30) {
-    color([1.0, 0.65, 0.0, alpha])
-        translate([24.6116886, -153.6459808, 0])
-            import("specimen/corolla+hatchback+trunk+floor+handle.stl",
-                   convexity = 10);
-}
-
-if (show_reference) {
-    reference_stl();
+module printable_output() {
+    for (copy_index = [0 : print_quantity - 1])
+        translate([copy_index * copy_pitch_x, 0, 0])
+            handle_model();
 }
 
 if (show_model) {
-    handle_model();
+    printable_output();
 }
 
 if (show_cutters) {

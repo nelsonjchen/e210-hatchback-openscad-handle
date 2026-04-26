@@ -1,9 +1,6 @@
 # Reverse Engineering Notes
 
-Source specimen:
-`specimen/corolla+hatchback+trunk+floor+handle.stl`
-
-Measured STL bounds, normalized to a zero origin:
+Measured bounds, normalized to a zero origin:
 
 | Axis | Size |
 | --- | ---: |
@@ -20,5 +17,4 @@ Observed features:
 - A second rear rib sits near X 25.4 mm behind the inner opening edge.
 
 The OpenSCAD model in `../e210_hatchback_trunk_floor_handle.scad` is a
-parametric first-pass approximation. Set `show_reference = true;` in that file
-to overlay the original STL for tuning.
+parametric approximation built from these measured features.

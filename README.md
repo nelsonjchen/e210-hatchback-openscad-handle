@@ -41,14 +41,29 @@ make preview IMG_SIZE=2400,1800
 
 Generated STL and preview PNG files are intentionally ignored by git.
 
+## MakerWorld Parametric Model Maker
+
+`e210_hatchback_trunk_floor_handle.scad` is arranged to work as a MakerWorld
+Parametric Model Maker script. The top of the file exposes a small set of
+Customizer-style controls for output quantity, fit, and texture. Internal
+reverse-engineering dimensions are kept under a hidden section so PMM users do
+not have to wade through calibration constants.
+
+The quantity control can output either one handle or a pair laid out side by
+side for both trunk-floor slots.
+
+The default output is a single-material printable model. Part colors are kept
+as a debug visualization toggle for inspecting the building blocks during
+tuning, not as the production print mode.
+
+The script uses BOSL2 for the diamond grip texture. MakerWorld PMM bundles
+BOSL2, so this include is intentional.
+
 ## Source Notes
 
 The main model lives in `e210_hatchback_trunk_floor_handle.scad`.
 
-Reverse-engineering notes are in `agents/reverse_engineering.md`. The original
-specimen STL is not redistributed in this repository; if you have a local
-reference specimen, keep it under `specimen/` and use the `show_reference`
-toggle in the SCAD file for private alignment/tuning.
+Reverse-engineering notes are in `agents/reverse_engineering.md`.
 
 ## Acknowledgements
 
