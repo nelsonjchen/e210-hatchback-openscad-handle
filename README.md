@@ -3,6 +3,9 @@
 Parametric OpenSCAD model for a trunk-floor handle used with the Toyota deck
 board assembly `58410-12050-C0`.
 
+Published MakerWorld model:
+[2019-25 Corolla Hatchback E210 Trunkfloor Handle](https://makerworld.com/en/models/2719129-2019-25-corolla-hatchback-e210-trunkfloor-handle#profileId-3011915)
+
 ## Compatibility
 
 Intended for 2019-2025 Toyota Corolla Hatchbacks equipped with a spare tire.
